@@ -9,7 +9,7 @@ export default async function NewsPage({ searchParams }: { searchParams: Promise
   const [items, sources] = await Promise.all([getNews(source), getNewsSources()]);
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold">AI 뉴스</h1>
+      <h1 className="mb-6 text-2xl font-bold tracking-tight">AI 뉴스</h1>
       <FilterLinks base="/news" param="source" options={sources.map((s) => [s, s])} current={source} />
       <NewsList items={items} />
     </div>

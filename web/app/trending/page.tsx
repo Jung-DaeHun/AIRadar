@@ -8,7 +8,7 @@ export default async function TrendingPage() {
   const repos = await getTrending();
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold">이번 주 급상승 레포</h1>
+      <h1 className="mb-6 text-2xl font-bold tracking-tight">이번 주 급상승 레포</h1>
       <RepoList repos={repos} empty={TRENDING_EMPTY} />
     </div>
   );

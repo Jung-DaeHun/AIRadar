@@ -6,20 +6,25 @@ import { TRENDING_EMPTY } from "@/lib/types";
 
 export const revalidate = 3600;
 
+function SectionHeader({ title, href }: { title: string; href: string }) {
+  return (
+    <div className="mb-4 flex items-baseline justify-between border-b border-line pb-2">
+      <h2 className="text-sm font-bold">{title}</h2>
+      <Link href={href} className="text-sm text-muted hover:text-accent">더 보기 →</Link>
+    </div>
+  );
+}
+
 export default async function Home() {
   const [news, trending] = await Promise.all([getNews(undefined, 5), getTrending(5)]);
   return (
-    <div className="space-y-10">
+    <div className="space-y-14">
       <section>
-        <h2 className="mb-3 text-lg font-bold">
-          최신 AI 뉴스 <Link href="/news" className="ml-2 text-sm font-normal text-blue-600">더 보기</Link>
-        </h2>
+        <SectionHeader title="최신 AI 뉴스" href="/news" />
         <NewsList items={news} />
       </section>
       <section>
-        <h2 className="mb-3 text-lg font-bold">
-          이번 주 급상승 <Link href="/trending" className="ml-2 text-sm font-normal text-blue-600">더 보기</Link>
-        </h2>
+        <SectionHeader title="이번 주 급상승" href="/trending" />
         <RepoList repos={trending} empty={TRENDING_EMPTY} />
       </section>
     </div>
