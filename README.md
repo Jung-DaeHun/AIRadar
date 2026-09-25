@@ -22,7 +22,7 @@ PowerShell에서는 `$env:DATABASE_URL="..."`로 먼저 설정한다.
 | `LLM_PROVIDER` | `claude`(기본) / `gemini` / `openai` |
 | `LLM_API_KEY` | 선택한 제공자의 키. 없으면 요약을 건너뛴다 |
 | `LLM_MODEL` | 모델 ID. gemini/openai는 필수 |
-| `LLM_MAX_CALLS` | 실행당 LLM 호출 상한 (기본 60) |
+| `LLM_MAX_CALLS` | 실행당 LLM 호출 상한 (기본 60). Actions에서는 저장소 Settings → Variables의 `LLM_MAX_CALLS`로 조정한다 (현재 20) |
 | `GITHUB_TOKEN` | GitHub API 토큰(선택). 없으면 Search API 호출 간격을 늘린다. Actions에서는 자동 제공된다 |
 
 ## 배포
