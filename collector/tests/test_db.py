@@ -37,13 +37,21 @@ def test_news_without_summary_then_set(conn):
 
 def repo(**kw):
     base = {"full_name": "o/r", "description": None, "url": "https://github.com/o/r",
-            "stars": 10, "pushed_at": datetime.now(timezone.utc), "topics": ["mcp-server"]}
+            "stars": 10, "pushed_at": datetime.now(timezone.utc), "topics": ["mcp-server"],
+            "created_at": datetime(2026, 9, 1, tzinfo=timezone.utc)}
     return base | kw
 
 
 def test_upsert_repo_updates_existing(conn):
     rid = db.upsert_repo(conn, repo())
     assert db.upsert_repo(conn, repo(stars=20)) == rid
+
+
+def test_upsert_repo_stores_and_updates_created_at(conn):
+    rid = db.upsert_repo(conn, repo(created_at=None))
+    db.upsert_repo(conn, repo())
+    row = conn.execute("SELECT created_at FROM repos WHERE id = %s", (rid,)).fetchone()
+    assert row["created_at"] == datetime(2026, 9, 1, tzinfo=timezone.utc)
 
 
 def test_stars_days_ago(conn):

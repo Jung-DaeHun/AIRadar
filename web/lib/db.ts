@@ -44,3 +44,14 @@ export async function getTrending(limit = 30): Promise<Repo[]> {
     ORDER BY weekly_star_delta DESC
     LIMIT ${limit}`) as Repo[];
 }
+
+export async function getNewRepos(limit = 20): Promise<Repo[]> {
+  if (!sql) return [];
+  return (await sql`
+    SELECT id::int, full_name, description, url, category, stars, weekly_star_delta, summary_ko, install_commands
+    FROM repos
+    WHERE created_at >= now() - interval '30 days'
+      AND updated_at >= now() - interval '2 days'
+    ORDER BY stars DESC
+    LIMIT ${limit}`) as Repo[];
+}

@@ -44,11 +44,13 @@ def set_news_summary(conn, news_id: int, summary: str) -> None:
 
 def upsert_repo(conn, r: dict) -> int:
     row = conn.execute(
-        """INSERT INTO repos (full_name, description, url, stars, pushed_at, topics)
-           VALUES (%(full_name)s, %(description)s, %(url)s, %(stars)s, %(pushed_at)s, %(topics)s)
+        """INSERT INTO repos (full_name, description, url, stars, pushed_at, topics, created_at)
+           VALUES (%(full_name)s, %(description)s, %(url)s, %(stars)s, %(pushed_at)s, %(topics)s,
+                   %(created_at)s)
            ON CONFLICT (full_name) DO UPDATE SET
              description = EXCLUDED.description, url = EXCLUDED.url, stars = EXCLUDED.stars,
-             pushed_at = EXCLUDED.pushed_at, topics = EXCLUDED.topics, updated_at = now()
+             pushed_at = EXCLUDED.pushed_at, topics = EXCLUDED.topics,
+             created_at = EXCLUDED.created_at, updated_at = now()
            RETURNING id""",
         r,
     ).fetchone()
