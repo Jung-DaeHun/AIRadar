@@ -1107,6 +1107,27 @@ def test_main_exits_when_nothing_fetched(monkeypatch):
     monkeypatch.setattr(run_repos.github, "fetch", lambda: [])
     with pytest.raises(SystemExit):
         run_repos.main()
+
+
+def test_main_saves_repos_even_when_llm_config_is_invalid(monkeypatch):
+    from contextlib import nullcontext
+    from datetime import datetime, timezone
+
+    saved = []
+    repo = {"full_name": "o/r", "description": None, "url": "u", "stars": 30,
+            "pushed_at": datetime.now(timezone.utc), "topics": []}
+    monkeypatch.setattr(run_repos.github, "fetch", lambda: [repo])
+    monkeypatch.setattr(run_repos.db, "connect", lambda: nullcontext(object()))
+    monkeypatch.setattr(run_repos.db, "apply_schema", lambda conn: None)
+    monkeypatch.setattr(run_repos.db, "upsert_repo", lambda conn, r: saved.append(r) or 1)
+    monkeypatch.setattr(run_repos.db, "save_snapshot", lambda *a: None)
+    monkeypatch.setattr(run_repos.db, "stars_days_ago", lambda *a, **k: None)
+    monkeypatch.setattr(run_repos.db, "update_repo_score", lambda *a: None)
+    monkeypatch.setenv("LLM_API_KEY", "k")
+    monkeypatch.setenv("LLM_PROVIDER", "bogus")
+    with pytest.raises(SystemExit):
+        run_repos.main()
+    assert saved == [repo]
 ```
 
 - [ ] **Step 2: 실패 확인**
@@ -1207,7 +1228,6 @@ def main() -> None:
         raise SystemExit(1)
     now = datetime.now(timezone.utc)
     today = now.date()
-    provider = get_provider()
     with db.connect() as conn:
         db.apply_schema(conn)
         for r in repos:
@@ -1217,6 +1237,12 @@ def main() -> None:
             days = (now - r["pushed_at"]).total_seconds() / 86400 if r["pushed_at"] else 90
             db.update_repo_score(conn, rid, score(r["stars"], delta, days), delta)
         log.info("scored %d repos", len(repos))
+        # LLM 설정 오류가 있어도 레포·스냅샷은 이미 저장됐다. 요약만 건너뛰고 실패로 끝내 Actions에서 드러나게 한다
+        try:
+            provider = get_provider()
+        except ValueError as e:
+            log.error("LLM config error; skipping summaries: %s", e)
+            raise SystemExit(1)
         if provider is None:
             log.info("LLM_API_KEY not set; skipping summaries")
             return
