@@ -53,9 +53,24 @@ def test_stars_days_ago(conn):
     assert db.stars_days_ago(conn, rid, date(2026, 9, 8)) == 10
 
 
+def test_stars_days_ago_ignores_snapshots_older_than_14_days(conn):
+    rid = db.upsert_repo(conn, repo())
+    db.save_snapshot(conn, rid, 10, date(2026, 8, 1))
+    assert db.stars_days_ago(conn, rid, date(2026, 9, 8)) is None
+    db.save_snapshot(conn, rid, 20, date(2026, 8, 25))
+    db.save_snapshot(conn, rid, 30, date(2026, 8, 30))
+    assert db.stars_days_ago(conn, rid, date(2026, 9, 8)) == 30
+
+
 def test_top_repos_and_set_llm(conn):
     rid = db.upsert_repo(conn, repo())
     db.update_repo_score(conn, rid, 5.0, None)
     db.set_repo_llm(conn, rid, "h", "mcp-server", "요약", ["npx -y x"])
     [row] = db.top_repos(conn, 10)
     assert row["readme_hash"] == "h"
+
+
+def test_top_repos_skips_repos_not_updated_recently(conn):
+    rid = db.upsert_repo(conn, repo())
+    conn.execute("UPDATE repos SET updated_at = now() - interval '3 days' WHERE id = %s", (rid,))
+    assert db.top_repos(conn, 10) == []

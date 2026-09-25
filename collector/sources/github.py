@@ -41,20 +41,24 @@ def merge(batches: list[list[dict]]) -> list[dict]:
 
 def fetch() -> list[dict]:
     since = date.today() - timedelta(days=90)
+    created = date.today() - timedelta(days=30)
     delay = 2 if os.environ.get("GITHUB_TOKEN") else 7  # Search API 분당 호출 제한
+    # 인기 레포 + 최근 30일 내 생성된 신규 레포(stars 정렬 상위 50에 밀려 누락되지 않게)
+    queries = [q for t in TOPICS for q in (f"topic:{t} stars:>=20 pushed:>={since}",
+                                           f"topic:{t} stars:>=20 created:>={created}")]
     batches = []
-    for i, topic in enumerate(TOPICS):
+    for i, q in enumerate(queries):
         if i:
             time.sleep(delay)
         try:
             r = httpx.get(f"{API}/search/repositories", headers=_headers(), timeout=20, params={
-                "q": f"topic:{topic} stars:>=20 pushed:>={since}", "sort": "stars", "order": "desc", "per_page": 50,
+                "q": q, "sort": "stars", "order": "desc", "per_page": 50,
             })
         except httpx.HTTPError as e:
-            log.warning("search %s failed: %s", topic, e)
+            log.warning("search %s failed: %s", q, e)
             continue
         if r.status_code != 200:
-            log.warning("search %s failed: %s", topic, r.status_code)
+            log.warning("search %s failed: %s", q, r.status_code)
             continue
         batches.append(parse_search(r.json()))
     return merge(batches)

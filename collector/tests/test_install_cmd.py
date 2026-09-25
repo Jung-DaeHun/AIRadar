@@ -60,6 +60,7 @@ BLOCKED = [
     "npm install ./local",
     "npm install /abs/pkg",
     "npm install ../pkg",
+    "npx -y аnthropic-mcp",  # 키릴 'а' 동형문자
 ]
 
 
