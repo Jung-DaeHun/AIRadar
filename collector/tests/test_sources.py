@@ -1,3 +1,5 @@
+import pytest
+
 from collector.sources import geeknews, hackernews, rss
 from collector.sources.keywords import is_ai
 
@@ -46,3 +48,20 @@ def test_hackernews_parse_filters_and_falls_back_to_item_url():
     [item] = hackernews.parse(data)
     assert item["url"] == "https://news.ycombinator.com/item?id=1"
     assert item["source"] == "hackernews" and item["excerpt"] is None
+
+
+def test_rss_fetch_continues_when_one_feed_fails(monkeypatch):
+    def get(url):
+        if url == rss.FEEDS["openai"]:
+            raise ValueError("broken feed")
+        return RSS.encode()
+    monkeypatch.setattr(rss, "get", get)
+    assert {i["source"] for i in rss.fetch()} == set(rss.FEEDS) - {"openai"}
+
+
+def test_rss_fetch_raises_when_all_feeds_fail(monkeypatch):
+    def get(url):
+        raise ValueError("broken feed")
+    monkeypatch.setattr(rss, "get", get)
+    with pytest.raises(RuntimeError):
+        rss.fetch()

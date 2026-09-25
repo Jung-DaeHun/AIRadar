@@ -65,9 +65,9 @@ def save_snapshot(conn, repo_id: int, stars: int, day: date) -> None:
 
 def stars_days_ago(conn, repo_id: int, today: date, days: int = 7) -> int | None:
     row = conn.execute(
-        """SELECT stars FROM repo_star_snapshots WHERE repo_id = %s AND date <= %s
+        """SELECT stars FROM repo_star_snapshots WHERE repo_id = %s AND date BETWEEN %s AND %s
            ORDER BY date DESC LIMIT 1""",
-        (repo_id, today - timedelta(days=days)),
+        (repo_id, today - timedelta(days=days + 7), today - timedelta(days=days)),
     ).fetchone()
     return row["stars"] if row else None
 
@@ -82,7 +82,7 @@ def update_repo_score(conn, repo_id: int, score: float, weekly_delta: int | None
 def top_repos(conn, limit: int) -> list[dict]:
     return conn.execute(
         """SELECT id, full_name, description, readme_hash FROM repos
-           WHERE pushed_at >= now() - interval '90 days'
+           WHERE pushed_at >= now() - interval '90 days' AND updated_at >= now() - interval '2 days'
            ORDER BY score DESC LIMIT %s""",
         (limit,),
     ).fetchall()

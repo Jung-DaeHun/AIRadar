@@ -44,10 +44,13 @@ def get(url: str) -> bytes:
 
 
 def fetch() -> list[dict]:
-    items = []
+    items, failed = [], 0
     for source, url in FEEDS.items():
         try:
             items += parse(get(url), source)
-        except httpx.HTTPError as e:
+        except Exception as e:
             log.warning("feed %s failed: %s", source, e)
+            failed += 1
+    if failed == len(FEEDS):
+        raise RuntimeError("all feeds failed")
     return items

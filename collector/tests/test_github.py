@@ -40,7 +40,22 @@ def test_fetch_skips_topic_on_network_error(monkeypatch):
     monkeypatch.setattr(github.time, "sleep", lambda s: None)
     monkeypatch.setattr(github.httpx, "get", fake_get_timeout_on_third_call())
     names = [r["full_name"] for r in github.fetch()]
-    assert names == [f"o/r{i}" for i in range(1, len(github.TOPICS) + 1) if i != 3]
+    assert names == [f"o/r{i}" for i in range(1, 2 * len(github.TOPICS) + 1) if i != 3]
+
+
+def test_fetch_also_searches_recently_created_repos_per_topic(monkeypatch):
+    sleeps, queries = [], []
+    monkeypatch.setattr(github.time, "sleep", sleeps.append)
+
+    def get(url, params=None, **kwargs):
+        queries.append(params["q"])
+        return httpx.Response(200, json={"items": [item("a/b")]})
+    monkeypatch.setattr(github.httpx, "get", get)
+    assert [r["full_name"] for r in github.fetch()] == ["a/b"]
+    assert len(queries) == 2 * len(github.TOPICS)
+    assert len(sleeps) == len(queries) - 1
+    since = github.date.today() - github.timedelta(days=30)
+    assert queries[1] == f"topic:{github.TOPICS[0]} stars:>=20 created:>={since}"
 
 
 def test_fetch_readme_returns_none_on_network_error(monkeypatch):

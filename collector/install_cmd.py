@@ -7,7 +7,7 @@ _NPX = rf"npx(?: -y)? {_PKG}(?: {_ARG})*"
 _PYPKG = r"\w[\w.-]*(?:\[[\w,-]+\])?(?:(?:==|@)[\w.-]+)?"  # PyPI 이름(버전 지정 포함)만. URL, 경로 거부
 _UVX = rf"uvx(?: --from {_PYPKG})? {_PYPKG}(?: {_ARG})*"
 _MCP_OPT = r"(?:-s|--scope|-e|--env|-t|--transport) [\w.=:/-]+"
-PATTERNS = [re.compile(p) for p in (
+PATTERNS = [re.compile(p, re.ASCII) for p in (
     r"/plugin marketplace add [\w.-]+/[\w.-]+",
     r"/plugin install [\w.@-]+",
     rf"claude mcp add(?: {_MCP_OPT})* [\w.-]+ -- (?:{_NPX}|{_UVX})",
