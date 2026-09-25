@@ -10,7 +10,7 @@ export default async function ToolsPage({ searchParams }: { searchParams: Promis
   const repos = await getTools(category);
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold">AI 코딩 도구 추천</h1>
+      <h1 className="mb-6 text-2xl font-bold tracking-tight">AI 코딩 도구 추천</h1>
       <FilterLinks base="/tools" param="category" options={Object.entries(CATEGORY_LABELS)} current={category} />
       <RepoList repos={repos} empty="아직 추천할 도구가 없습니다." />
     </div>

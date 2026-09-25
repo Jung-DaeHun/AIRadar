@@ -2,9 +2,9 @@ import RepoCard from "./RepoCard";
 import type { Repo } from "@/lib/types";
 
 export default function RepoList({ repos, empty }: { repos: Repo[]; empty: string }) {
-  if (repos.length === 0) return <p className="text-gray-500">{empty}</p>;
+  if (repos.length === 0) return <p className="py-12 text-center text-sm text-muted">{empty}</p>;
   return (
-    <ul className="space-y-4">
+    <ul className="divide-y divide-line">
       {repos.map((r) => (
         <RepoCard key={r.id} repo={r} />
       ))}

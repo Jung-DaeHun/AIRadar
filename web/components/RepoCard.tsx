@@ -7,29 +7,31 @@ function formatDelta(d: number) {
 
 export default function RepoCard({ repo }: { repo: Repo }) {
   return (
-    <li className="rounded border p-4">
-      <div className="flex items-baseline justify-between gap-2">
-        <a href={repo.url} target="_blank" rel="noreferrer" className="font-semibold hover:underline">
-          {repo.full_name}
-        </a>
-        <span className="shrink-0 text-xs text-gray-500">
+    <li className="py-6 first:pt-0">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="min-w-0">
+          <a href={repo.url} target="_blank" rel="noreferrer" className="break-all text-lg font-bold hover:text-accent">
+            {repo.full_name}
+          </a>
+          {repo.category && (
+            <span className="ml-2 text-xs text-muted">{CATEGORY_LABELS[repo.category] ?? repo.category}</span>
+          )}
+        </div>
+        <span className="shrink-0 text-sm text-muted">
           ★ {repo.stars.toLocaleString()}
-          {repo.weekly_star_delta !== null && ` (${formatDelta(repo.weekly_star_delta)})`}
+          {repo.weekly_star_delta !== null && (
+            <span className="ml-2 font-semibold text-accent">{formatDelta(repo.weekly_star_delta)}</span>
+          )}
         </span>
       </div>
-      {repo.category && (
-        <span className="mt-1 inline-block rounded bg-gray-100 px-2 text-xs dark:bg-gray-800">
-          {CATEGORY_LABELS[repo.category] ?? repo.category}
-        </span>
-      )}
       {(repo.summary_ko ?? repo.description) && (
-        <p className="mt-2 whitespace-pre-line text-sm">{repo.summary_ko ?? repo.description}</p>
+        <p className="mt-2 whitespace-pre-line text-[15px] text-foreground/80">{repo.summary_ko ?? repo.description}</p>
       )}
       {repo.install_commands.length > 0 && (
-        <ul className="mt-3 space-y-1">
+        <ul className="mt-3 space-y-2">
           {repo.install_commands.map((c) => (
-            <li key={c} className="flex items-center gap-2">
-              <code className="flex-1 overflow-x-auto rounded bg-gray-100 px-2 py-1 text-xs dark:bg-gray-800">{c}</code>
+            <li key={c} className="flex items-center gap-2 rounded-md bg-code py-1 pl-3 pr-1">
+              <code className="flex-1 overflow-x-auto whitespace-nowrap font-mono text-[13px]">{c}</code>
               <CopyButton text={c} />
             </li>
           ))}
