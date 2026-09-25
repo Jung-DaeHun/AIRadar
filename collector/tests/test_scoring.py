@@ -14,5 +14,9 @@ def test_fresh_beats_stale():
     assert score(100, 10, 1) > score(100, 10, 80)
 
 
+def test_future_push_date_does_not_exceed_freshness_cap():
+    assert score(100, 10, -30) == score(100, 10, 0)
+
+
 def test_negative_delta_and_old_push_do_not_go_negative():
     assert score(0, -50, 400) == 0.0
