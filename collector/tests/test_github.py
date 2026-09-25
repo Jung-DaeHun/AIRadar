@@ -1,3 +1,6 @@
+import httpx
+
+from collector.sources import github
 from collector.sources.github import merge, parse_search
 
 
@@ -20,3 +23,28 @@ def test_merge_dedupes_repos_found_under_multiple_topics():
     a = parse_search({"items": [item("a/b"), item("x/y")]})
     b = parse_search({"items": [item("a/b")]})
     assert [r["full_name"] for r in merge([a, b])] == ["a/b", "x/y"]
+
+
+def fake_get_timeout_on_third_call():
+    calls = []
+
+    def get(url, **kwargs):
+        calls.append(url)
+        if len(calls) == 3:
+            raise httpx.ReadTimeout("timeout")
+        return httpx.Response(200, json={"items": [item(f"o/r{len(calls)}")]})
+    return get
+
+
+def test_fetch_skips_topic_on_network_error(monkeypatch):
+    monkeypatch.setattr(github.time, "sleep", lambda s: None)
+    monkeypatch.setattr(github.httpx, "get", fake_get_timeout_on_third_call())
+    names = [r["full_name"] for r in github.fetch()]
+    assert names == [f"o/r{i}" for i in range(1, len(github.TOPICS) + 1) if i != 3]
+
+
+def test_fetch_readme_returns_none_on_network_error(monkeypatch):
+    def get(url, **kwargs):
+        raise httpx.ReadTimeout("timeout")
+    monkeypatch.setattr(github.httpx, "get", get)
+    assert github.fetch_readme("o/r") is None

@@ -46,9 +46,13 @@ def fetch() -> list[dict]:
     for i, topic in enumerate(TOPICS):
         if i:
             time.sleep(delay)
-        r = httpx.get(f"{API}/search/repositories", headers=_headers(), timeout=20, params={
-            "q": f"topic:{topic} stars:>=20 pushed:>={since}", "sort": "stars", "order": "desc", "per_page": 50,
-        })
+        try:
+            r = httpx.get(f"{API}/search/repositories", headers=_headers(), timeout=20, params={
+                "q": f"topic:{topic} stars:>=20 pushed:>={since}", "sort": "stars", "order": "desc", "per_page": 50,
+            })
+        except httpx.HTTPError as e:
+            log.warning("search %s failed: %s", topic, e)
+            continue
         if r.status_code != 200:
             log.warning("search %s failed: %s", topic, r.status_code)
             continue
@@ -57,6 +61,10 @@ def fetch() -> list[dict]:
 
 
 def fetch_readme(full_name: str) -> str | None:
-    r = httpx.get(f"{API}/repos/{full_name}/readme", headers=_headers(raw=True),
-                  timeout=20, follow_redirects=True)
+    try:
+        r = httpx.get(f"{API}/repos/{full_name}/readme", headers=_headers(raw=True),
+                      timeout=20, follow_redirects=True)
+    except httpx.HTTPError as e:
+        log.warning("readme %s failed: %s", full_name, e)
+        return None
     return r.text if r.status_code == 200 else None
