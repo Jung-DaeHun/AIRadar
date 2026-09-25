@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen antialiased">
         <header className="sticky top-0 z-10 border-b border-line bg-background/80 backdrop-blur">
-          <div className="mx-auto flex h-14 max-w-2xl items-center gap-6 px-4">
+          <div className="mx-auto flex h-14 max-w-[720px] items-center gap-6 px-4">
             <Link href="/" className="text-lg font-bold tracking-tight">Airadar</Link>
             <NavLinks />
             <div className="ml-auto">
@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-2xl px-4 py-10">{children}</main>
+        <main className="mx-auto max-w-[720px] px-4 py-10">{children}</main>
       </body>
     </html>
   );
