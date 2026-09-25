@@ -4,7 +4,8 @@ _TOKEN = r"[\w.@/:=,\[\]-]+"
 _ARG = rf"(?:{_TOKEN}|'{_TOKEN}')"  # 따옴표는 짝이 맞을 때만
 _PKG = r"(?:@\w[\w.-]*/)?\w[\w.-]*(?:@[\w.-]+)?"  # npm 패키지명만. github:, URL, 경로 거부
 _NPX = rf"npx(?: -y)? {_PKG}(?: {_ARG})*"
-_UVX = rf"uvx {_ARG}(?: {_ARG})*"
+_PYPKG = r"\w[\w.-]*(?:\[[\w,-]+\])?(?:(?:==|@)[\w.-]+)?"  # PyPI 이름(버전 지정 포함)만. URL, 경로 거부
+_UVX = rf"uvx(?: --from {_PYPKG})? {_PYPKG}(?: {_ARG})*"
 _MCP_OPT = r"(?:-s|--scope|-e|--env|-t|--transport) [\w.=:/-]+"
 PATTERNS = [re.compile(p) for p in (
     r"/plugin marketplace add [\w.-]+/[\w.-]+",
@@ -13,7 +14,7 @@ PATTERNS = [re.compile(p) for p in (
     _NPX,
     _UVX,
     r"pip install (?:[\w.\[\],=-]+|'[\w.\[\],=-]+')",
-    r"npm install( -g)? [\w.@/-]+",
+    rf"npm install(?: -g)? {_PKG}",
     r"git clone https://github\.com/[\w.-]+/[\w.-]+",
 )]
 
