@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta, timezone
 
 from collector import db
 from collector.llm.base import get_provider, max_calls
@@ -24,13 +25,23 @@ def collect() -> list[dict]:
     return items
 
 
+def recent(items: list[dict], now: datetime, days: int = 14) -> list[dict]:
+    cutoff = now - timedelta(days=days)
+    return [i for i in items if i["published_at"] is None or i["published_at"] >= cutoff]
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
-    items = collect()
-    provider = get_provider()
+    items = recent(collect(), datetime.now(timezone.utc))
     with db.connect() as conn:
         db.apply_schema(conn)
         log.info("inserted %d new items", db.upsert_news(conn, items))
+        # LLM 설정 오류가 있어도 뉴스는 이미 저장됐다. 요약만 건너뛰고 실패로 끝내 Actions에서 드러나게 한다
+        try:
+            provider = get_provider()
+        except ValueError as e:
+            log.error("LLM config error; skipping summaries: %s", e)
+            raise SystemExit(1)
         if provider is None:
             log.info("LLM_API_KEY not set; skipping summaries")
             return
