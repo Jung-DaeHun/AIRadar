@@ -27,7 +27,7 @@ def _dt(s: str | None) -> datetime | None:
 def parse_search(data: dict) -> list[dict]:
     return [{"full_name": r["full_name"], "description": r.get("description"), "url": r["html_url"],
              "stars": r["stargazers_count"], "pushed_at": _dt(r.get("pushed_at")),
-             "topics": r.get("topics", [])}
+             "created_at": _dt(r.get("created_at")), "topics": r.get("topics", [])}
             for r in data.get("items", []) if not r.get("archived")]
 
 

@@ -7,7 +7,7 @@ from collector.sources.github import merge, parse_search
 def item(name, archived=False, stars=50):
     return {"full_name": name, "description": "d", "html_url": f"https://github.com/{name}",
             "stargazers_count": stars, "pushed_at": "2026-09-20T10:00:00Z",
-            "topics": ["mcp-server"], "archived": archived}
+            "created_at": "2026-09-01T08:00:00Z", "topics": ["mcp-server"], "archived": archived}
 
 
 def test_parse_search_maps_fields_and_drops_archived():
@@ -17,6 +17,7 @@ def test_parse_search_maps_fields_and_drops_archived():
     assert r["full_name"] == "a/b" and r["url"] == "https://github.com/a/b" and r["stars"] == 50
     assert r["pushed_at"].year == 2026 and r["pushed_at"].tzinfo is not None
     assert r["topics"] == ["mcp-server"]
+    assert r["created_at"].isoformat() == "2026-09-01T08:00:00+00:00"
 
 
 def test_merge_dedupes_repos_found_under_multiple_topics():

@@ -31,3 +31,5 @@ export const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export const TRENDING_EMPTY = "집계 중입니다. 스타 기록이 7일 이상 쌓이면 표시됩니다.";
+
+export const NEW_REPOS_EMPTY = "최근 30일 내 생성된 레포가 아직 없습니다.";
