@@ -32,3 +32,8 @@ export function formatNewsTime(publishedAt: string, source: string): string | nu
   const local = SOURCE_ZONES[source];
   return local ? `${kst} · ${format(date, local[0], local[1])}` : kst;
 }
+
+export function formatKst(value: string): string | null {
+  const date = parse(value);
+  return Number.isNaN(date.getTime()) ? null : format(date, "Asia/Seoul", "KST");
+}

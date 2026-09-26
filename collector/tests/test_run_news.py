@@ -24,6 +24,7 @@ def _fake_main_deps(monkeypatch, saved):
     monkeypatch.setattr(run_news.db, "connect", lambda: nullcontext(object()))
     monkeypatch.setattr(run_news.db, "apply_schema", lambda conn: None)
     monkeypatch.setattr(run_news.db, "upsert_news", lambda conn, items: saved.extend(items) or len(items))
+    monkeypatch.setattr(run_news.db, "record_run", lambda conn, name: saved.append({"url": f"run:{name}"}))
 
 
 def test_main_saves_news_even_when_llm_config_is_invalid(monkeypatch):
@@ -33,7 +34,7 @@ def test_main_saves_news_even_when_llm_config_is_invalid(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "bogus")
     with pytest.raises(SystemExit):
         run_news.main()
-    assert [i["url"] for i in saved] == ["u"]
+    assert [i["url"] for i in saved] == ["u", "run:news"]
 
 
 def test_main_saves_news_and_returns_without_llm_key(monkeypatch):
@@ -41,7 +42,7 @@ def test_main_saves_news_and_returns_without_llm_key(monkeypatch):
     _fake_main_deps(monkeypatch, saved)
     monkeypatch.delenv("LLM_API_KEY", raising=False)
     run_news.main()
-    assert [i["url"] for i in saved] == ["u"]
+    assert [i["url"] for i in saved] == ["u", "run:news"]
 
 
 def test_recent_drops_old_items_and_keeps_undated():

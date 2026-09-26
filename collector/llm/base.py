@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 log = logging.getLogger("airadar.llm")
 
-Kind = Literal["news", "repo"]
+Kind = Literal["news", "repo", "digest"]
 CATEGORIES = ("claude-code-plugin", "skill", "mcp-server", "cursor-rules", "agent-framework", "other")
 
 
@@ -22,7 +22,12 @@ class RepoSummary(BaseModel):
     install_commands: list[str] = []
 
 
-MODELS = {"news": NewsSummary, "repo": RepoSummary}
+class DigestSummary(BaseModel):
+    title_ko: str = Field(min_length=1)
+    body_ko: str = Field(min_length=1)
+
+
+MODELS = {"news": NewsSummary, "repo": RepoSummary, "digest": DigestSummary}
 
 PROMPTS = {
     "news": (
@@ -35,6 +40,11 @@ PROMPTS = {
         '{"category": "claude-code-plugin|skill|mcp-server|cursor-rules|agent-framework|other 중 하나", '
         '"summary_ko": "무엇이고 누가 쓰면 좋은지 한국어 3줄", '
         '"install_commands": ["README에 실제로 적힌 설치 명령만, 최대 3개. 없으면 빈 배열"]}\n\n'
+    ),
+    "digest": (
+        "다음은 이번 주 AI 뉴스 요약과 급상승 AI 코딩 도구 목록이다. 주어진 항목만 사용하고 추측하지 마라. "
+        "뉴스 핵심 5~7개와 주목할 도구 3~5개를 한국어 불릿(- )으로 정리한 주간 브리핑을 써라.\n"
+        'JSON만 출력: {"title_ko": "이번 주를 요약한 한 줄 제목", "body_ko": "뉴스\\n- ...\\n\\n도구\\n- ..."}\n\n'
     ),
 }
 

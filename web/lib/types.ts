@@ -21,6 +21,14 @@ export type Repo = {
   install_commands: string[];
 };
 
+export type Digest = {
+  id: number;
+  week_start: string;
+  title_ko: string;
+  body_ko: string;
+  created_at: string;
+};
+
 export const CATEGORY_LABELS: Record<string, string> = {
   "claude-code-plugin": "Claude Code 플러그인",
   skill: "스킬",

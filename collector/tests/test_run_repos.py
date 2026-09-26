@@ -23,11 +23,12 @@ def test_main_saves_repos_even_when_llm_config_is_invalid(monkeypatch):
     monkeypatch.setattr(run_repos.db, "save_snapshot", lambda *a: None)
     monkeypatch.setattr(run_repos.db, "stars_days_ago", lambda *a, **k: None)
     monkeypatch.setattr(run_repos.db, "update_repo_score", lambda *a: None)
+    monkeypatch.setattr(run_repos.db, "record_run", lambda conn, name: saved.append(name))
     monkeypatch.setenv("LLM_API_KEY", "k")
     monkeypatch.setenv("LLM_PROVIDER", "bogus")
     with pytest.raises(SystemExit):
         run_repos.main()
-    assert saved == [repo]
+    assert saved == [repo, "repos"]
 
 
 def test_main_summarizes_changed_readmes_with_filtered_commands(monkeypatch):
@@ -58,6 +59,7 @@ def test_main_summarizes_changed_readmes_with_filtered_commands(monkeypatch):
     monkeypatch.setattr(run_repos.db, "save_snapshot", lambda *a: None)
     monkeypatch.setattr(run_repos.db, "stars_days_ago", lambda *a, **k: None)
     monkeypatch.setattr(run_repos.db, "update_repo_score", lambda *a: None)
+    monkeypatch.setattr(run_repos.db, "record_run", lambda conn, name: None)
     monkeypatch.setattr(run_repos.db, "top_repos", lambda conn, n: rows)
     monkeypatch.setattr(run_repos.db, "set_repo_llm", lambda conn, *a: llm.append(a))
     monkeypatch.setattr(run_repos, "get_provider", lambda: FakeProvider())

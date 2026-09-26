@@ -36,6 +36,7 @@ def main() -> None:
     with db.connect() as conn:
         db.apply_schema(conn)
         log.info("inserted %d new items", db.upsert_news(conn, items))
+        db.record_run(conn, "news")
         # LLM 설정 오류가 있어도 뉴스는 이미 저장됐다. 요약만 건너뛰고 실패로 끝내 Actions에서 드러나게 한다
         try:
             provider = get_provider()

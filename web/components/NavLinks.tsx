@@ -7,6 +7,7 @@ const LINKS: [string, string][] = [
   ["/news", "뉴스"],
   ["/tools", "도구 추천"],
   ["/trending", "급상승"],
+  ["/digest", "다이제스트"],
 ];
 
 export default function NavLinks() {
