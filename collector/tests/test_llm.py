@@ -32,6 +32,12 @@ def test_parse_rejects_garbage():
     assert parse_output('{"summary_ko": ""}', "news") is None
 
 
+def test_parse_digest():
+    raw = '{"title_ko": "이번 주 AI", "body_ko": "- 뉴스"}'
+    assert parse_output(raw, "digest") == {"title_ko": "이번 주 AI", "body_ko": "- 뉴스"}
+    assert parse_output('{"title_ko": "이번 주 AI", "body_ko": ""}', "digest") is None
+
+
 def test_summarize_uses_complete():
     assert FakeProvider('{"summary_ko": "요약"}').summarize("text", "news") == {"summary_ko": "요약"}
 

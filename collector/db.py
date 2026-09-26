@@ -97,3 +97,38 @@ def set_repo_llm(conn, repo_id: int, readme_hash: str, category: str,
            WHERE id = %s""",
         (readme_hash, category, summary_ko, Jsonb(install_commands), repo_id),
     )
+
+
+def record_run(conn, name: str) -> None:
+    conn.execute(
+        """INSERT INTO collector_runs (name, finished_at) VALUES (%s, now())
+           ON CONFLICT (name) DO UPDATE SET finished_at = now()""",
+        (name,),
+    )
+
+
+def week_news(conn, limit: int = 40) -> list[dict]:
+    return conn.execute(
+        """SELECT title, summary_ko, source FROM news_items
+           WHERE summary_ko IS NOT NULL AND COALESCE(published_at, created_at) >= now() - interval '7 days'
+           ORDER BY COALESCE(published_at, created_at) DESC LIMIT %s""",
+        (limit,),
+    ).fetchall()
+
+
+def rising_repos(conn, limit: int) -> list[dict]:
+    return conn.execute(
+        """SELECT full_name, description, summary_ko, weekly_star_delta FROM repos
+           WHERE weekly_star_delta IS NOT NULL AND updated_at >= now() - interval '2 days'
+           ORDER BY weekly_star_delta DESC LIMIT %s""",
+        (limit,),
+    ).fetchall()
+
+
+def upsert_digest(conn, week_start: date, title_ko: str, body_ko: str) -> None:
+    conn.execute(
+        """INSERT INTO digests (week_start, title_ko, body_ko) VALUES (%s, %s, %s)
+           ON CONFLICT (week_start) DO UPDATE SET
+             title_ko = EXCLUDED.title_ko, body_ko = EXCLUDED.body_ko, created_at = now()""",
+        (week_start, title_ko, body_ko),
+    )

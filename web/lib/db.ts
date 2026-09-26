@@ -1,7 +1,15 @@
 import { neon } from "@neondatabase/serverless";
-import type { NewsItem, Repo } from "./types";
+import type { Digest, NewsItem, Repo } from "./types";
 
 const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
+
+// 새 테이블은 다음 수집 실행 때 생성되므로, 아직 없으면(42P01) 빈 값으로 처리한다.
+function orIfNoTable<T>(fallback: T) {
+  return (e: unknown): T => {
+    if ((e as { code?: string }).code === "42P01") return fallback;
+    throw e;
+  };
+}
 
 export async function getNews(source?: string, limit = 50): Promise<NewsItem[]> {
   if (!sql) return [];
@@ -54,4 +62,19 @@ export async function getNewRepos(limit = 20): Promise<Repo[]> {
       AND updated_at >= now() - interval '2 days'
     ORDER BY stars DESC
     LIMIT ${limit}`) as Repo[];
+}
+
+export async function getLastRuns(): Promise<{ news?: string; repos?: string }> {
+  if (!sql) return {};
+  const rows = await sql`SELECT name, finished_at::text FROM collector_runs`.catch(orIfNoTable([]));
+  return Object.fromEntries(rows.map((r) => [r.name as string, r.finished_at as string]));
+}
+
+export async function getDigests(limit = 8): Promise<Digest[]> {
+  if (!sql) return [];
+  return (await sql`
+    SELECT id::int, week_start::text, title_ko, body_ko, created_at::text
+    FROM digests
+    ORDER BY week_start DESC
+    LIMIT ${limit}`.catch(orIfNoTable([]))) as Digest[];
 }

@@ -30,6 +30,7 @@ def main() -> None:
             days = (now - r["pushed_at"]).total_seconds() / 86400 if r["pushed_at"] else 90
             db.update_repo_score(conn, rid, score(r["stars"], delta, days), delta)
         log.info("scored %d repos", len(repos))
+        db.record_run(conn, "repos")
         # LLM 설정 오류가 있어도 레포·스냅샷은 이미 저장됐다. 요약만 건너뛰고 실패로 끝내 Actions에서 드러나게 한다
         try:
             provider = get_provider()

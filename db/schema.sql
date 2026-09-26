@@ -37,3 +37,16 @@ CREATE TABLE IF NOT EXISTS repo_star_snapshots (
   stars   INTEGER NOT NULL,
   PRIMARY KEY (repo_id, date)
 );
+
+CREATE TABLE IF NOT EXISTS collector_runs (
+  name        TEXT PRIMARY KEY,
+  finished_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS digests (
+  id         BIGSERIAL PRIMARY KEY,
+  week_start DATE NOT NULL UNIQUE,
+  title_ko   TEXT NOT NULL,
+  body_ko    TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
