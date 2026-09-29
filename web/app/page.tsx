@@ -25,7 +25,7 @@ export default async function Home() {
         ) : (
           <article>
             <h3 className="text-lg font-bold leading-snug">{digest.title_ko}</h3>
-            <p className="mt-3 line-clamp-6 whitespace-pre-line text-[15px] leading-relaxed text-foreground/80">{digest.body_ko}</p>
+            <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-foreground/80">{digest.body_ko}</p>
           </article>
         )}
       </section>
