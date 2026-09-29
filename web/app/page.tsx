@@ -1,7 +1,6 @@
 import Link from "next/link";
-import NewsList from "@/components/NewsList";
 import RepoList from "@/components/RepoList";
-import { getNews, getTrending } from "@/lib/db";
+import { getDigests, getTrending } from "@/lib/db";
 import { TRENDING_EMPTY } from "@/lib/types";
 
 export const revalidate = 3600;
@@ -16,12 +15,19 @@ function SectionHeader({ title, href }: { title: string; href: string }) {
 }
 
 export default async function Home() {
-  const [news, trending] = await Promise.all([getNews(undefined, 5), getTrending(5)]);
+  const [[digest], trending] = await Promise.all([getDigests(1), getTrending(5)]);
   return (
     <div className="space-y-14">
       <section>
-        <SectionHeader title="최신 AI 뉴스" href="/news" />
-        <NewsList items={news} />
+        <SectionHeader title="주간 다이제스트" href="/digest" />
+        {!digest ? (
+          <p className="py-12 text-center text-sm text-muted">첫 다이제스트는 월요일 오전에 발행됩니다.</p>
+        ) : (
+          <article>
+            <h3 className="text-lg font-bold leading-snug">{digest.title_ko}</h3>
+            <p className="mt-3 line-clamp-6 whitespace-pre-line text-[15px] leading-relaxed text-foreground/80">{digest.body_ko}</p>
+          </article>
+        )}
       </section>
       <section>
         <SectionHeader title="이번 주 급상승" href="/trending" />
